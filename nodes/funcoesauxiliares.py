@@ -1,5 +1,8 @@
 import time
 import pickle
+import random
+import socket
+import threading
 
 def enviar_mensagem(socket,mensagem):
     socket.send(mensagem.encode('utf-8'))
@@ -11,16 +14,20 @@ def enviar_mensagem(socket,mensagem):
         print(f"esperava \"confirmado\" entretanto foi recebido {confirmacao_de_chegada}")
         return
 
-def enviar_estrutura(socket,dado):
+def enviar_estrutura(socket, dado):
     socket.send(dado)
-    confirmacao_de_chegada = socket.recv(2048).decode('utf-8')
-    if(confirmacao_de_chegada == "confirmado"):
+    
+    tamanho_confirmacao = len("confirmado")
+    
+    confirmacao_de_chegada = socket.recv(tamanho_confirmacao).decode('utf-8')
+
+    if confirmacao_de_chegada == "confirmado":
         return
     else:
-        print("algo de errado esta acontecendo")
-        print(f"esperava \"confirmado\" entretanto foi recebido {confirmacao_de_chegada}")
+        print("Algo de errado está acontecendo.")
+        print(f"Esperava \"confirmado\", entretanto foi recebido \"{confirmacao_de_chegada}\"")
+        print(f"Erro ao enviar estrutura")
         return
-
 
 def receber_mensagem(socket):
     dado = socket.recv(2048).decode('utf-8')
@@ -104,3 +111,33 @@ def process_token(token, element_id):
             return True
         else:
             return False
+
+def acessar_regiao_critica():
+    PORTAS = [('backup2',16008), ('primario',16001), ('backup1',16004)]
+
+    porta = random.choice(PORTAS)
+    comando = random.choice(["R","W"])
+    
+    valor = random.randint(0, 100)
+    
+    # Criar um socket para o cliente
+    cliente_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    cliente_socket.connect((porta))
+        
+    # Preparar a requisição (escrita ou leitura)
+    requisicao = (comando,(valor))
+    print(f'enviando requisição: {requisicao},para porta: {porta}')
+
+
+    requisicao = pickle.dumps(requisicao)
+    
+    enviar_estrutura(cliente_socket,requisicao)
+     
+    
+    #resposta = receber_mensagem(cliente_socket)
+    resposta = cliente_socket.recv(2048).decode('utf-8')
+    print(f"Resposta do servidor na porta {porta}: {resposta}")
+        
+    cliente_socket.close()
+    time.sleep(0.3)
+    return

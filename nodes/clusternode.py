@@ -1,7 +1,4 @@
-import socket
-import threading
-import time
-import random
+
 from funcoesauxiliares import *
 def node(node_id, next_node_port,ip, listen_port, node_service_name):
 
@@ -58,11 +55,15 @@ def node(node_id, next_node_port,ip, listen_port, node_service_name):
             token[id_client] = request[1]
 
         # caso o meu timestamp seja o menor
-        elif process_token(token,id_client) == True:
+        elif process_token(token,id_client):
             #acessar o recurso
             critic_acess_time = random.uniform(0.2, 1)
+
+
             print("Menor timestamp; acesso à região crítica")
             print(f"Entrando na região crítica [Tempo do sleep: {critic_acess_time:.2f} segundos]")
+            acessar_regiao_critica()
+            
             token[id_client] = None
             print(f"Escrevendo NULL na posição {node_id} no TOKEN")
             request[0] = False

@@ -14,7 +14,7 @@ def cliente(id,ip,node_port):
     print(f"Enviando ID: {id}")
     enviar_mensagem(sock,id)
     # definindo quantidade de requests
-    requests_number = random.randint(10,50)
+    requests_number = random.randint(10,20)
 
     for i in range(requests_number):
         # enviando time stamp

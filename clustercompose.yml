@@ -1,0 +1,39 @@
+services:
+  primario:
+    image: python:3.9-slim
+    working_dir: /app
+    volumes:
+      - ./:/app
+    container_name: clusterprimario
+    expose:
+      - "16001"
+    networks:
+      - tp2network
+    command: ["python3", "-u", "./cluster_store/primariolocal.py"]
+    
+  backup1:
+    image: python:3.9-slim
+    working_dir: /app
+    volumes:
+      - ./:/app
+    container_name: backup1
+    expose:
+      - "16004"
+    networks:
+      - tp2network
+    command: ["python3", "-u", "./cluster_store/node1.py"]
+
+  backup2:
+    image: python:3.9-slim
+    working_dir: /app
+    volumes:
+      - ./:/app
+    container_name: backup2
+    expose:
+      - "16008"
+    networks:
+      - tp2network
+    command: ["python3", "-u", "./cluster_store/node2.py"]
+networks:
+  tp2network:
+    external: true
