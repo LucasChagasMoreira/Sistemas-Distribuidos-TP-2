@@ -54,33 +54,40 @@ def connect_primary_node(sock,port, ip,retry_interval=5):
             time.sleep(retry_interval)  # Aguarda antes de tentar novamente
 
 def primary_connection(sock,registro,flag,permição):
-  
+    try:
         while True:
             
             print("mensagem thread: esperando dados")
             dados = sock.recv(2048)
             permição.clear()
-            print(f"mensagem thread: {dados}")
+            #print(f"mensagem thread: {dados}")
             print("mensagem thread: ordem de atualização recebida")
             dados = pickle.loads(dados)
-            print(dados)
+            #print(dados)
             #atualizar registro
             atualiza_registro(registro,dados)
-            print("mensagem thread: notificando primarca")
-            sock.send("Atualizado".encode('utf-8'))
-            print("mensagem thread: primarca notificado")
+            #print("mensagem thread: notificando primarca")
+            
+            #erro: elemento com permissao de escrita
+            if dados == 2:
+                sock.close()
+                return
 
-            print("mensagem thread: liberando processo principal")
+            sock.send("Atualizado".encode('utf-8'))
+            #print("mensagem thread: primarca notificado")
+
+            #print("mensagem thread: liberando processo principal")
             flag.set()
             time.sleep(0.2)
             permição.set()
-          
-
+    except Exception as e:
+        print(f"Erro durante a comunicação: {e}")
+    finally:
+         print(f"Conexão com {sock} foi fechada.")
    
 
 def backup_connection(connection,registro,connections_list,evento,flag_communicação,permição):
-    
-        print(f'')    
+    try:    
         while True:
             print("mensagem thread: esperando dados")
             dados = connection.recv(2048)
@@ -88,30 +95,49 @@ def backup_connection(connection,registro,connections_list,evento,flag_communica
                 permição.clear()
                 print("mensagem thread: novo elemento a ser atualizado")
                 dados = pickle.loads(dados)
-                print(f'mensagem thread: {dados}')
+                #print(f'mensagem thread: {dados}')
                 # atualizar registro
                 atualiza_registro(registro,dados)
-                print("mensagem thread: elemento atualizado")
-                print(f'mensagem thread: registro atual: {dados}')
+                #print("mensagem thread: elemento atualizado")
+                #print(f'mensagem thread: registro atual: {dados}')
                 dados = pickle.dumps(dados)
+                print("mensagem thread: enviando requisiçoes de atualizaçao")
+                        
                 for conn in connections_list:
                         #envia os dados para todos os nós
-                        print("mensagem thread: enviando requisiçoes de atualizaçao")
+                        #print("mensagem thread: enviando requisiçoes de atualizaçao")
                         conn.send(dados)
+                        print(f"mensagem thread: {conn}")
                         
                 connection.recv(len("Atualizado")).decode('utf-8')
-                print(f"mensagem thread: atualziação recebida")
+                print(f"mensagem thread: atualização recebida")
 
                 flag_communicação.wait()
                 print("mensagem thread: todos os nós atualizados")
                 
                 flag_communicação.clear()
+                
             else:
                 print("mensagem thread: mensagem de confirmação recebida")
                 flag_communicação.set()
                 evento.set()
+            
             permição.set()
-  
+            
+    except Exception as e:
+        print(f"Erro durante a comunicação: {e}")
+        connections_list.remove(connection)
+        connection.close()
+        evento.set()
+        flag_communicação.set()
+        print("abrindo permissão permanentemente.")
+        permição.set()
+    finally:
+        # Garante que a conexão será fechada ao final
+        print(f'tamanho: {len(connections_list)}, connections: {connections_list}')
+        print(f"Conexão com {connection} foi fechada.")
+        permição.set()
+        return
 
 
 def buscar(dado, lista):

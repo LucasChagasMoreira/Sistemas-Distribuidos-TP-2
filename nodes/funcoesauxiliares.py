@@ -112,32 +112,45 @@ def process_token(token, element_id):
         else:
             return False
 
-def acessar_regiao_critica():
-    PORTAS = [('backup2',16008), ('primario',16001), ('backup1',16004)]
-
-    porta = random.choice(PORTAS)
-    comando = random.choice(["R","W"])
+def acessar_regiao_critica(PORTAS):
     
-    valor = random.randint(0, 100)
-    
-    # Criar um socket para o cliente
-    cliente_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    cliente_socket.connect((porta))
+    while True:
+        porta = random.choice(PORTAS)
+        comando = random.choice(["W","R"])
         
-    # Preparar a requisição (escrita ou leitura)
-    requisicao = (comando,(valor))
-    print(f'enviando requisição: {requisicao},para porta: {porta}')
-
-
-    requisicao = pickle.dumps(requisicao)
-    
-    enviar_estrutura(cliente_socket,requisicao)
-     
-    
-    #resposta = receber_mensagem(cliente_socket)
-    resposta = cliente_socket.recv(2048).decode('utf-8')
-    print(f"Resposta do servidor na porta {porta}: {resposta}")
+        valor = random.randint(0, 55)
         
-    cliente_socket.close()
-    time.sleep(0.3)
-    return
+
+        # Criar um socket para o cliente
+        cliente_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        cliente_socket.settimeout(5.0)
+        try:
+            cliente_socket.connect((porta))
+        except Exception as e:
+            print(f"cluster : {porta} caiu")
+            PORTAS.remove(porta)
+            continue
+            
+        # Preparar a requisição (escrita ou leitura)
+        requisicao = (comando,(valor))
+        print(f'enviando requisição: {requisicao},para porta: {porta}')
+
+
+        requisicao = pickle.dumps(requisicao)
+        try:
+            enviar_estrutura(cliente_socket,requisicao)
+
+            resposta = cliente_socket.recv(2048).decode('utf-8')
+            print(f"Resposta do servidor na porta {porta}: {resposta}")
+
+        except Exception as e:
+            print(f"cluster : {porta} caiu")
+            PORTAS.remove(porta)
+
+            
+        
+        #resposta = receber_mensagem(cliente_socket)
+        
+        cliente_socket.close()
+        time.sleep(0.3)
+        return

@@ -1,6 +1,7 @@
 
 from funcoesauxiliares import *
 def node(node_id, next_node_port,ip, listen_port, node_service_name):
+    PORTAS = [('backup2',16008), ('primario',16001), ('backup1',16004)]
 
     request = [False,None]
 
@@ -62,7 +63,7 @@ def node(node_id, next_node_port,ip, listen_port, node_service_name):
 
             print("Menor timestamp; acesso à região crítica")
             print(f"Entrando na região crítica [Tempo do sleep: {critic_acess_time:.2f} segundos]")
-            acessar_regiao_critica()
+            acessar_regiao_critica(PORTAS)
             
             token[id_client] = None
             print(f"Escrevendo NULL na posição {node_id} no TOKEN")

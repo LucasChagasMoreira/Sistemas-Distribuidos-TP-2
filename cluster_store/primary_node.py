@@ -21,13 +21,13 @@ def start(node_port,node_ip):
     connections.append(node_sock1)
     client_thread = threading.Thread(target=backup_connection, args=(node_sock1,registro,connections,backup1,flag_communicação,permissão1))
     client_thread.start()
-
+    print(f'sock 1:{node_sock1}')
     print('esperando conexoes do no 2')
     node_sock2, node_addr2 = server_sock.accept()
     connections.append(node_sock2)
     client_thread = threading.Thread(target=backup_connection, args=(node_sock2,registro,connections,backup2,flag_communicação,permissão2))
     client_thread.start()
-
+    print(f'sock 2:{node_sock2}')
     #esperar receber alguma requsição
     while True:
         try:
@@ -35,11 +35,12 @@ def start(node_port,node_ip):
             client_sock,client_addr = server_sock.accept()
             print(f"Conexão estabelecida com {client_addr}")
 
-            print("esperando threads permitirem conexao")
-            permissão1.wait()
-            permissão2.wait()
+            if not permissão1.wait(3):
+                permissão1.set()
+            if not permissão2.wait(3):
+                permissão2.set()
             mensagem = receber_estrutura(client_sock)
-            print("recebi a estrutura")
+            print("requisição do cliente recebida.")
             requisicao, dado = pickle.loads(mensagem)
 
             # mensagem = (requisição de leitura/escrita, dado)
@@ -59,18 +60,27 @@ def start(node_port,node_ip):
                     dado_serializado = pickle.dumps(dado)
 
                     #itera sobre todas suas conexões com os outros nós
+                    print("enviando requisição de atualização para todos os nós")
                     for conn in connections:
                         #envia os dados para todos os nós
                         conn.sendall(dado_serializado)
-                        print(f"mensagem thread: enviando: {dado} tipo: {type(dado)}")
-                    
-                    print("esperando...")
-                    while not (backup1.is_set() and backup2.is_set()):
+                        #print(f"mensagem thread: enviando: {dado} tipo: {type(dado)}")
                         
-                        time.sleep(0.1)
-                    
-                    backup1.clear()
-                    backup2.clear()
+                    print("esperando resposta dos backups")
+                    #while not (backup1.is_set() and backup2.is_set()):
+                        
+                    #    time.sleep(0.1)
+                    if not backup1.wait(4):
+                        node_sock1.close()
+                        backup1.set()
+                    if not backup2.wait(4):
+                        node_sock2.close()
+                        backup1.set()
+
+                    if node_sock1 in connections:
+                        backup1.clear()
+                    if node_sock2 in connections:
+                        backup2.clear()
 
                     print("todos os backups atualizados!!") 
                     client_sock.sendall("Escrita feita!!".encode('utf-8'))
